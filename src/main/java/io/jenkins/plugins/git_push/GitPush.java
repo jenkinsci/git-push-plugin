@@ -11,6 +11,7 @@ import hudson.plugins.git.GitSCM;
 import hudson.scm.SCM;
 import hudson.tasks.Recorder;
 import java.io.IOException;
+import java.io.Serializable;
 import org.eclipse.jgit.lib.ObjectId;
 import org.eclipse.jgit.transport.RemoteConfig;
 import org.eclipse.jgit.transport.URIish;
@@ -19,7 +20,7 @@ import org.jenkinsci.plugins.gitclient.UnsupportedCommand;
 import org.kohsuke.stapler.DataBoundConstructor;
 
 /** @author Réda Housni Alaoui */
-public class GitPush extends Recorder {
+public class GitPush extends Recorder implements Serializable {
 
   private final String targetRepo;
   private final String targetBranch;
