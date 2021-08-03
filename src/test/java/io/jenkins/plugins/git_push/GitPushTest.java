@@ -3,6 +3,7 @@ package io.jenkins.plugins.git_push;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.eclipse.jgit.lib.Constants.R_HEADS;
 import static org.eclipse.jgit.lib.Constants.R_TAGS;
 
 import hudson.Launcher;
@@ -145,13 +146,11 @@ public class GitPushTest {
 
     try (Git origin = Git.open(originGitRepoDir.getRoot())) {
       ObjectId commitId = ObjectId.fromString(commitAction.commit.name());
-      assertThatCode(() -> origin.getRepository().parseCommit(commitId)).doesNotThrowAnyException();
-
       List<Ref> tags = origin.getRepository().getRefDatabase().getRefsByPrefix(R_TAGS);
       assertThat(tags)
           .anySatisfy(
               ref -> {
-                assertThat(ref.getName()).isEqualTo("refs/tags/" + tagAction.tagName);
+                assertThat(ref.getName()).isEqualTo(R_TAGS + tagAction.tagName);
                 try {
                   assertThat(origin.getRepository().getRefDatabase().peel(ref).getPeeledObjectId())
                       .isEqualTo(commitId);
@@ -163,21 +162,81 @@ public class GitPushTest {
   }
 
   @Test
-  public void it_create_merge_commit_if_needed() {
-    // TODO
+  public void it_create_merge_commit_if_needed() throws Exception {
+    project
+        .getBuildersList()
+        .add(
+            new CommitBuilder()
+                .gitDir(noneJenkinsGitRepoDir.getRoot().getAbsolutePath())
+                .push(true)
+                .publishCommitAction(false));
+    project.getBuildersList().add(new CommitBuilder());
+    project.getPublishersList().add(new GitPush("master", "origin"));
+    project.save();
+
+    FreeStyleBuild build = project.scheduleBuild2(0).get();
+    jenkins.assertBuildStatus(Result.SUCCESS, build);
+
+    CommitAction commitAction = build.getAction(CommitAction.class);
+    assertThat(commitAction).isNotNull();
+
+    try (Git origin = Git.open(originGitRepoDir.getRoot())) {
+      ObjectId commitId = ObjectId.fromString(commitAction.commit.name());
+      assertThatCode(() -> origin.getRepository().parseCommit(commitId)).doesNotThrowAnyException();
+
+      Ref master = origin.getRepository().getRefDatabase().findRef(R_HEADS + "master");
+      assertThat(master).isNotNull();
+
+      RevCommit masterHead = origin.getRepository().parseCommit(master.getObjectId());
+      assertThat(masterHead).isNotNull();
+      assertThat(masterHead.getParentCount()).isEqualTo(2);
+    }
   }
 
   private static class CommitBuilder extends Builder {
 
+    private String gitDir;
+    private boolean push;
+    private boolean publishCommitAction = true;
+
+    CommitBuilder() {}
+
+    CommitBuilder gitDir(String gitDir) {
+      this.gitDir = gitDir;
+      return this;
+    }
+
+    CommitBuilder push(boolean push) {
+      this.push = push;
+      return this;
+    }
+
+    CommitBuilder publishCommitAction(boolean publishCommitAction) {
+      this.publishCommitAction = publishCommitAction;
+      return this;
+    }
+
     @Override
     public boolean perform(AbstractBuild<?, ?> build, Launcher launcher, BuildListener listener)
         throws IOException {
-      Path workspacePath = Paths.get(build.getWorkspace().getRemote());
-      Files.createFile(workspacePath.resolve("second.txt"));
-      try (Git workspaceGit = Git.open(workspacePath.toFile())) {
-        workspaceGit.add().addFilepattern("second.txt").call();
-        build.addAction(
-            new CommitAction(workspaceGit.commit().setMessage("Add second.txt").call()));
+      Path finalGitDir;
+      if (gitDir == null) {
+        finalGitDir = Paths.get(build.getWorkspace().getRemote());
+      } else {
+        finalGitDir = Paths.get(gitDir);
+      }
+
+      String fileName = UUID.randomUUID() + ".txt";
+      Files.createFile(finalGitDir.resolve(fileName));
+      try (Git git = Git.open(finalGitDir.toFile())) {
+        git.add().addFilepattern(fileName).call();
+        RevCommit commit = git.commit().setMessage("Add " + fileName).call();
+        if (publishCommitAction) {
+          build.addAction(new CommitAction(commit));
+        }
+        if (push) {
+          git.push().call();
+        }
       } catch (GitAPIException e) {
         throw new RuntimeException(e);
       }
