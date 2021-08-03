@@ -120,12 +120,9 @@ public class GitPushTest {
     assertThat(commitAction).isNotNull();
 
     try (Git origin = Git.open(originGitRepoDir.getRoot())) {
-      assertThatCode(
-              () ->
-                  origin
-                      .getRepository()
-                      .parseCommit(ObjectId.fromString(commitAction.commit.name())))
-          .doesNotThrowAnyException();
+      RevCommit commit =
+          origin.getRepository().parseCommit(ObjectId.fromString(commitAction.commit.name()));
+      assertThat(commit.getParentCount()).isEqualTo(1);
     }
   }
 
