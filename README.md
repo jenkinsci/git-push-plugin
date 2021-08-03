@@ -10,21 +10,31 @@
 
 This plugin allows to perform a git push as a post build step via [Git Plugin](https://plugins.jenkins.io/git)
 
+In details, the plugin will pull then push (tags included) to the selected remote branch.
+
 ## Getting started
 
-TODO Tell users how to configure your plugin here, include screenshots, pipeline examples and 
-configuration-as-code examples.
+Open the Jenkins job configuration.
+
+Make sure the job uses git `Source Code Management`.
+For example, a basic git configuration could look like this:
+
+![alt text](doc/git-plugin-configuration.png "Git configuration")
+
+
+Add `Git Push` as a post build action:
+
+![alt text](doc/add-post-build-action.png "Add the post build action")
+
+Configure the action:
+
+![alt text](doc/configure-action.png "Configure the action")
 
 ## Issues
-
-TODO Decide where you're going to host your issues, the default is Jenkins JIRA, but you can also enable GitHub issues,
-If you use GitHub issues there's no need for this section; else add the following line:
 
 Report issues and enhancements in the [Jenkins issue tracker](https://issues.jenkins-ci.org/).
 
 ## Contributing
-
-TODO review the default [CONTRIBUTING](https://github.com/jenkinsci/.github/blob/master/CONTRIBUTING.md) file and make sure it is appropriate for your plugin, if not then add your own one adapted from the base file
 
 Refer to our [contribution guidelines](https://github.com/jenkinsci/.github/blob/master/CONTRIBUTING.md)
 
