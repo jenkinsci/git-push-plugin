@@ -93,6 +93,7 @@ public class GitPush extends Recorder implements Serializable {
       ObjectId remoteRev = git.revParse(remoteRepo + "/" + remoteBranch);
       git.merge().setRevisionToMerge(remoteRev).execute();
       git.push().to(remoteURI).ref("HEAD:" + remoteBranch).tags(true).execute();
+      git.fetch_().from(remoteURI, remote.getFetchRefSpecs()).execute();
     } catch (GitException e) {
       e.printStackTrace(listener.error("Failed to push to " + remoteRepo));
       return false;
