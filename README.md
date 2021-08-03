@@ -8,7 +8,7 @@
 
 ## Introduction
 
-TODO Describe what your plugin does here
+This plugin allows to perform a git push as a post build step via [Git Plugin](https://plugins.jenkins.io/git)
 
 ## Getting started
 

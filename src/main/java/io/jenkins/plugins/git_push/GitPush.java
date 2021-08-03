@@ -2,33 +2,49 @@ package io.jenkins.plugins.git_push;
 
 import hudson.AbortException;
 import hudson.EnvVars;
+import hudson.Extension;
 import hudson.Launcher;
 import hudson.model.AbstractBuild;
+import hudson.model.AbstractProject;
 import hudson.model.BuildListener;
 import hudson.model.Result;
 import hudson.plugins.git.GitException;
 import hudson.plugins.git.GitSCM;
 import hudson.scm.SCM;
+import hudson.tasks.BuildStepDescriptor;
+import hudson.tasks.Publisher;
 import hudson.tasks.Recorder;
+import hudson.util.FormValidation;
 import java.io.IOException;
 import java.io.Serializable;
+import org.apache.commons.lang.StringUtils;
 import org.eclipse.jgit.lib.ObjectId;
 import org.eclipse.jgit.transport.RemoteConfig;
 import org.eclipse.jgit.transport.URIish;
 import org.jenkinsci.plugins.gitclient.GitClient;
 import org.jenkinsci.plugins.gitclient.UnsupportedCommand;
+import org.kohsuke.stapler.AncestorInPath;
 import org.kohsuke.stapler.DataBoundConstructor;
+import org.kohsuke.stapler.QueryParameter;
 
 /** @author Réda Housni Alaoui */
 public class GitPush extends Recorder implements Serializable {
 
-  private final String targetRepo;
   private final String targetBranch;
+  private final String targetRepo;
 
   @DataBoundConstructor
-  public GitPush(String targetRepo, String targetBranch) {
-    this.targetRepo = targetRepo;
+  public GitPush(String targetBranch, String targetRepo) {
     this.targetBranch = targetBranch;
+    this.targetRepo = targetRepo;
+  }
+
+  public String getTargetBranch() {
+    return targetBranch;
+  }
+
+  public String getTargetRepo() {
+    return targetRepo;
   }
 
   @Override
@@ -74,16 +90,9 @@ public class GitPush extends Recorder implements Serializable {
 
     try {
       git.fetch_().from(remoteURI, remote.getFetchRefSpecs()).execute();
-      ObjectId head = git.revParse("HEAD");
       ObjectId remoteRev = git.revParse(remoteRepo + "/" + remoteBranch);
-      if (!head.equals(remoteRev)) {
-        git.merge().setRevisionToMerge(remoteRev).execute();
-      } else {
-        listener
-            .getLogger()
-            .println("No merge required. HEAD equals " + remoteRepo + "/" + remoteBranch);
-      }
-      git.push().to(remoteURI).ref("HEAD:" + remoteRepo).tags(true).execute();
+      git.merge().setRevisionToMerge(remoteRev).execute();
+      git.push().to(remoteURI).ref("HEAD:" + remoteBranch).tags(true).execute();
     } catch (GitException e) {
       e.printStackTrace(listener.error("Failed to push to " + remoteRepo));
       return false;
@@ -92,9 +101,61 @@ public class GitPush extends Recorder implements Serializable {
     return true;
   }
 
+  @Extension
+  public static class Descriptor extends BuildStepDescriptor<Publisher> {
+
+    @Override
+    public String getDisplayName() {
+      return "Git Push";
+    }
+
+    @Override
+    public boolean isApplicable(Class<? extends AbstractProject> jobType) {
+      return true;
+    }
+
+    public FormValidation doCheckTargetBranch(@QueryParameter String targetBranch) {
+      return checkFieldNotEmpty(targetBranch);
+    }
+
+    public FormValidation doCheckTargetRepo(
+        @AncestorInPath AbstractProject<?, ?> project, @QueryParameter String targetRepo) {
+
+      FormValidation validation = checkFieldNotEmpty(targetRepo);
+      if (validation.kind != FormValidation.Kind.OK) {
+        return validation;
+      }
+
+      SCM scm = project.getScm();
+      if (!(scm instanceof GitSCM)) {
+        return FormValidation.warning(
+            "Project not currently configured to use Git; cannot check remote repository");
+      }
+
+      GitSCM gitSCM = (GitSCM) scm;
+      if (gitSCM.getRepositoryByName(targetRepo) == null) {
+        return FormValidation.error(
+            "No remote repository configured with name '" + targetRepo + "'");
+      }
+
+      return FormValidation.ok();
+    }
+
+    private FormValidation checkFieldNotEmpty(String value) {
+      value = StringUtils.strip(value);
+
+      if (value == null || value.equals("")) {
+        return FormValidation.error("This field is required");
+      }
+      return FormValidation.ok();
+    }
+  }
+
   private static class GitPushUnsupportedCommand extends UnsupportedCommand {
     @Override
     public boolean determineSupportForJGit() {
+      // Do not know why we exactly need that. Inspired by
+      // https://github.com/jenkinsci/git-plugin/blob/b95bffa7579c91cb79616b5a1e45feea52e4f70b/src/main/java/hudson/plugins/git/GitPublisher.java#L189
       return false;
     }
   }
