@@ -23,7 +23,6 @@ import org.eclipse.jgit.transport.RemoteConfig;
 import org.eclipse.jgit.transport.URIish;
 import org.jenkinsci.plugins.gitclient.GitClient;
 import org.jenkinsci.plugins.gitclient.UnsupportedCommand;
-import org.kohsuke.stapler.AncestorInPath;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.QueryParameter;
 
@@ -119,27 +118,8 @@ public class GitPush extends Recorder implements Serializable {
       return checkFieldNotEmpty(targetBranch);
     }
 
-    public FormValidation doCheckTargetRepo(
-        @AncestorInPath AbstractProject<?, ?> project, @QueryParameter String targetRepo) {
-
-      FormValidation validation = checkFieldNotEmpty(targetRepo);
-      if (validation.kind != FormValidation.Kind.OK) {
-        return validation;
-      }
-
-      SCM scm = project.getScm();
-      if (!(scm instanceof GitSCM)) {
-        return FormValidation.warning(
-            "Project not currently configured to use Git; cannot check remote repository");
-      }
-
-      GitSCM gitSCM = (GitSCM) scm;
-      if (gitSCM.getRepositoryByName(targetRepo) == null) {
-        return FormValidation.error(
-            "No remote repository configured with name '" + targetRepo + "'");
-      }
-
-      return FormValidation.ok();
+    public FormValidation doCheckTargetRepo(@QueryParameter String targetRepo) {
+      return checkFieldNotEmpty(targetRepo);
     }
 
     private FormValidation checkFieldNotEmpty(String value) {
