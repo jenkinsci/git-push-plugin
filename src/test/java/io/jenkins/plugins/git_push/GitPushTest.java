@@ -17,6 +17,7 @@ import hudson.plugins.git.BranchSpec;
 import hudson.plugins.git.GitSCM;
 import hudson.plugins.git.UserRemoteConfig;
 import hudson.plugins.git.extensions.impl.DisableRemotePoll;
+import hudson.plugins.git.extensions.impl.UserIdentity;
 import hudson.tasks.Builder;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -78,6 +79,8 @@ public class GitPushTest {
             null,
             null,
             Collections.singletonList(new DisableRemotePoll()));
+
+    scm.getExtensions().add(new UserIdentity("John Doe", "john@example.com"));
 
     project = jenkins.createFreeStyleProject();
     project.setScm(scm);
