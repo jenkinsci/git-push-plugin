@@ -29,6 +29,7 @@ import org.eclipse.jgit.api.Git;
 import org.eclipse.jgit.api.errors.GitAPIException;
 import org.eclipse.jgit.errors.MissingObjectException;
 import org.eclipse.jgit.lib.ObjectId;
+import org.eclipse.jgit.lib.PersonIdent;
 import org.eclipse.jgit.lib.Ref;
 import org.eclipse.jgit.revwalk.RevCommit;
 import org.junit.After;
@@ -40,6 +41,8 @@ import org.jvnet.hudson.test.JenkinsRule;
 
 /** @author Réda Housni Alaoui */
 public class GitPushTest {
+
+  private static final PersonIdent IDENTITY = new PersonIdent("John Doe", "john@example.com");
 
   @Rule public JenkinsRule jenkins = new JenkinsRule();
   @Rule public TemporaryFolder originGitRepoDir = new TemporaryFolder();
@@ -63,7 +66,7 @@ public class GitPushTest {
     Files.createFile(noneJenkinsGitRepoDir.getRoot().toPath().resolve("first.txt"));
     noneJenkinsGitRepo = Git.open(noneJenkinsGitRepoDir.getRoot());
     noneJenkinsGitRepo.add().addFilepattern("first.txt").call();
-    noneJenkinsGitRepo.commit().setMessage("First commit").call();
+    noneJenkinsGitRepo.commit().setMessage("First commit").setCommitter(IDENTITY).call();
     noneJenkinsGitRepo.push().call();
 
     GitSCM scm =
@@ -227,7 +230,7 @@ public class GitPushTest {
       Files.createFile(finalGitDir.resolve(fileName));
       try (Git git = Git.open(finalGitDir.toFile())) {
         git.add().addFilepattern(fileName).call();
-        RevCommit commit = git.commit().setMessage("Add " + fileName).call();
+        RevCommit commit = git.commit().setMessage("Add " + fileName).setCommitter(IDENTITY).call();
         if (publishCommitAction) {
           build.addAction(new CommitAction(commit));
         }
