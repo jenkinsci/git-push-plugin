@@ -117,4 +117,12 @@
       </plugin>
     </plugins>
   </build>
+
+  <developers>
+    <developer>
+      <id>reda-alaoui</id>
+      <name>Réda Housni Alaoui</name>
+      <email>reda-alaoui@hey.com</email>
+    </developer>
+  </developers>
 </project>
