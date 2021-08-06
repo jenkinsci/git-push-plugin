@@ -32,7 +32,7 @@ Configure the action:
 
 ## Issues
 
-Report issues and enhancements in the [Jenkins issue tracker](https://issues.jenkins-ci.org/).
+Report issues and enhancements in the [Issue tracker](https://github.com/jenkinsci/git-push-plugin/issues).
 
 ## Contributing
 
