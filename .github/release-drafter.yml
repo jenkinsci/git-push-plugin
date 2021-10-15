@@ -1,2 +1,1 @@
 _extends: .github
-tag-template: git-push-$NEXT_MINOR_VERSION
