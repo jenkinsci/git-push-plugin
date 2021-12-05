@@ -21,6 +21,7 @@ import org.apache.commons.lang.StringUtils;
 import org.eclipse.jgit.lib.ObjectId;
 import org.eclipse.jgit.transport.RemoteConfig;
 import org.eclipse.jgit.transport.URIish;
+import org.jenkinsci.Symbol;
 import org.jenkinsci.plugins.gitclient.GitClient;
 import org.jenkinsci.plugins.gitclient.UnsupportedCommand;
 import org.kohsuke.stapler.DataBoundConstructor;
@@ -102,6 +103,7 @@ public class GitPush extends Recorder implements Serializable {
   }
 
   @Extension
+  @Symbol("gitPush")
   public static class Descriptor extends BuildStepDescriptor<Publisher> {
 
     @Override
