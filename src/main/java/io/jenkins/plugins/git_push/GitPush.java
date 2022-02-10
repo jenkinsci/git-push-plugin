@@ -1,6 +1,5 @@
 package io.jenkins.plugins.git_push;
 
-import hudson.AbortException;
 import hudson.EnvVars;
 import hudson.Extension;
 import hudson.Launcher;
@@ -8,7 +7,6 @@ import hudson.model.AbstractBuild;
 import hudson.model.AbstractProject;
 import hudson.model.BuildListener;
 import hudson.model.Result;
-import hudson.plugins.git.GitException;
 import hudson.plugins.git.GitSCM;
 import hudson.scm.SCM;
 import hudson.tasks.BuildStepDescriptor;
@@ -18,29 +16,33 @@ import hudson.util.FormValidation;
 import java.io.IOException;
 import java.io.Serializable;
 import org.apache.commons.lang.StringUtils;
-import org.eclipse.jgit.lib.ObjectId;
-import org.eclipse.jgit.transport.RemoteConfig;
-import org.eclipse.jgit.transport.URIish;
-import org.jenkinsci.Symbol;
-import org.jenkinsci.plugins.gitclient.GitClient;
-import org.jenkinsci.plugins.gitclient.UnsupportedCommand;
 import org.kohsuke.stapler.DataBoundConstructor;
+import org.kohsuke.stapler.DataBoundSetter;
 import org.kohsuke.stapler.QueryParameter;
 
 /** @author Réda Housni Alaoui */
 public class GitPush extends Recorder implements Serializable {
 
-  private final String targetBranch;
-  private final String targetRepo;
+  private String targetBranch;
+  private String targetRepo;
 
   @DataBoundConstructor
-  public GitPush(String targetBranch, String targetRepo) {
+  public GitPush() {
+    // Only needed to mark the constructor with @DataBoundConstructor
+  }
+
+  @DataBoundSetter
+  public void setTargetBranch(String targetBranch) {
     this.targetBranch = targetBranch;
-    this.targetRepo = targetRepo;
   }
 
   public String getTargetBranch() {
     return targetBranch;
+  }
+
+  @DataBoundSetter
+  public void setTargetRepo(String targetRepo) {
+    this.targetRepo = targetRepo;
   }
 
   public String getTargetRepo() {
@@ -72,38 +74,17 @@ public class GitPush extends Recorder implements Serializable {
 
     GitSCM gitSCM = (GitSCM) scm;
     EnvVars environment = build.getEnvironment(listener);
-
-    GitClient git =
-        gitSCM.createClient(
-            listener, environment, build, build.getWorkspace(), new GitPushUnsupportedCommand());
-
-    String remoteRepo = environment.expand(targetRepo);
-    String remoteBranch = environment.expand(targetBranch);
-
-    RemoteConfig remote = gitSCM.getRepositoryByName(remoteRepo);
-    if (remote == null) {
-      throw new AbortException("No repository found for target repo name '" + remoteRepo + "'");
-    }
-
-    remote = gitSCM.getParamExpandedRepo(environment, remote);
-    URIish remoteURI = remote.getURIs().get(0);
-
     try {
-      git.fetch_().from(remoteURI, remote.getFetchRefSpecs()).execute();
-      ObjectId remoteRev = git.revParse(remoteRepo + "/" + remoteBranch);
-      git.merge().setRevisionToMerge(remoteRev).execute();
-      git.push().to(remoteURI).ref("HEAD:" + remoteBranch).tags(true).execute();
-      git.fetch_().from(remoteURI, remote.getFetchRefSpecs()).execute();
-    } catch (GitException e) {
-      e.printStackTrace(listener.error("Failed to push to " + remoteRepo));
+      new GitPushCommand(gitSCM, build, listener, build.getWorkspace())
+          .call(environment.expand(targetBranch), environment.expand(targetRepo));
+    } catch (GitPushCommand.Failure e) {
+      e.printStackTrace(listener.error(e.getMessage()));
       return false;
     }
-
     return true;
   }
 
   @Extension
-  @Symbol("gitPush")
   public static class Descriptor extends BuildStepDescriptor<Publisher> {
 
     @Override
@@ -131,15 +112,6 @@ public class GitPush extends Recorder implements Serializable {
         return FormValidation.error("This field is required");
       }
       return FormValidation.ok();
-    }
-  }
-
-  private static class GitPushUnsupportedCommand extends UnsupportedCommand {
-    @Override
-    public boolean determineSupportForJGit() {
-      // Do not know why we exactly need that. Inspired by
-      // https://github.com/jenkinsci/git-plugin/blob/b95bffa7579c91cb79616b5a1e45feea52e4f70b/src/main/java/hudson/plugins/git/GitPublisher.java#L189
-      return false;
     }
   }
 }
