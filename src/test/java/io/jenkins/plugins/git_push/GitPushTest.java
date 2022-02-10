@@ -116,7 +116,7 @@ public class GitPushTest {
   @Test
   public void it_pushes_commits() throws Exception {
     project.getBuildersList().add(new CommitBuilder());
-    project.getPublishersList().add(new GitPush("master", "origin"));
+    project.getPublishersList().add(createGitPush("master", "origin"));
     project.save();
 
     FreeStyleBuild build = project.scheduleBuild2(0).get();
@@ -136,7 +136,7 @@ public class GitPushTest {
   public void it_pushes_tags() throws Exception {
     project.getBuildersList().add(new CommitBuilder());
     project.getBuildersList().add(new TagBuilder());
-    project.getPublishersList().add(new GitPush("master", "origin"));
+    project.getPublishersList().add(createGitPush("master", "origin"));
     project.save();
 
     FreeStyleBuild build = project.scheduleBuild2(0).get();
@@ -174,7 +174,7 @@ public class GitPushTest {
                 .push(true)
                 .publishCommitAction(false));
     project.getBuildersList().add(new CommitBuilder());
-    project.getPublishersList().add(new GitPush("master", "origin"));
+    project.getPublishersList().add(createGitPush("master", "origin"));
     project.save();
 
     FreeStyleBuild build = project.scheduleBuild2(0).get();
@@ -194,6 +194,13 @@ public class GitPushTest {
       assertThat(masterHead).isNotNull();
       assertThat(masterHead.getParentCount()).isEqualTo(2);
     }
+  }
+
+  private GitPush createGitPush(String targetBranch, String targetRepo) {
+    GitPush gitPush = new GitPush();
+    gitPush.setTargetBranch(targetBranch);
+    gitPush.setTargetRepo(targetRepo);
+    return gitPush;
   }
 
   private static class CommitBuilder extends Builder {
