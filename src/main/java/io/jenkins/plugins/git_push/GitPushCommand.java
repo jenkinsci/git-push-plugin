@@ -47,6 +47,7 @@ public class GitPushCommand {
       git.fetch_().from(remoteURI, remote.getFetchRefSpecs()).execute();
       ObjectId remoteRev = git.revParse(targetRepo + "/" + targetBranch);
       git.merge().setRevisionToMerge(remoteRev).execute();
+      git.push().to(remoteURI).ref("HEAD:" + targetBranch).execute();
       git.push().to(remoteURI).ref("HEAD:" + targetBranch).tags(true).execute();
       git.fetch_().from(remoteURI, remote.getFetchRefSpecs()).execute();
     } catch (GitException e) {
