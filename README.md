@@ -14,6 +14,8 @@ In details, the plugin will pull then push (tags included) to the selected remot
 
 ## Getting started
 
+The instructions below are based on a Jenkins job created as a Freestyle project.
+
 Open the Jenkins job configuration.
 
 Make sure the job uses git `Source Code Management`.
