@@ -14,6 +14,14 @@ In details, the plugin will pull then push (tags included) to the selected remot
 
 ## Getting started
 
+### Pipeline
+
+```groovy
+gitPush(gitScm: scm, targetBranch: env.BRANCH_NAME, targetRepo: 'origin')
+```
+
+### Jenkins Job
+
 The instructions below are based on a Jenkins job created as a Freestyle project.
 
 Open the Jenkins job configuration.
