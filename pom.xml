@@ -19,7 +19,7 @@
     <jenkins.version>${jenkins.baseline}.1</jenkins.version>
     <java.level>8</java.level>
     <gitHubRepo>jenkinsci/${project.artifactId}-plugin</gitHubRepo>
-    <git-code-format-maven-plugin.version>4.3</git-code-format-maven-plugin.version>
+    <git-code-format-maven-plugin.version>5.3</git-code-format-maven-plugin.version>
   </properties>
   <name>Git Push Plugin</name>
   <url>https://github.com/jenkinsci/${project.artifactId}-plugin</url>
