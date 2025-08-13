@@ -19,6 +19,7 @@ import hudson.plugins.git.UserRemoteConfig;
 import hudson.plugins.git.extensions.impl.DisableRemotePoll;
 import hudson.plugins.git.extensions.impl.UserIdentity;
 import hudson.tasks.Builder;
+import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -33,39 +34,43 @@ import org.eclipse.jgit.lib.ObjectId;
 import org.eclipse.jgit.lib.PersonIdent;
 import org.eclipse.jgit.lib.Ref;
 import org.eclipse.jgit.revwalk.RevCommit;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.TemporaryFolder;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 import org.jvnet.hudson.test.JenkinsRule;
+import org.jvnet.hudson.test.junit.jupiter.WithJenkins;
 
 /** @author Réda Housni Alaoui */
-public class GitPushTest {
+@WithJenkins
+class GitPushTest {
 
   private static final PersonIdent IDENTITY = new PersonIdent("John Doe", "john@example.com");
 
-  @Rule public JenkinsRule jenkins = new JenkinsRule();
-  @Rule public TemporaryFolder originGitRepoDir = new TemporaryFolder();
-  @Rule public TemporaryFolder noneJenkinsGitRepoDir = new TemporaryFolder();
+  private JenkinsRule jenkins;
+  @TempDir
+  private File originGitRepoDir;
+  @TempDir
+  private File noneJenkinsGitRepoDir;
 
   private Git noneJenkinsGitRepo;
   private FreeStyleProject project;
 
-  @Before
-  public void beforeEach() throws IOException, GitAPIException {
+  @BeforeEach
+  void beforeEach(JenkinsRule rule) throws Exception {
+    jenkins = rule;
     Git.init()
         .setBare(true)
-        .setDirectory(originGitRepoDir.getRoot())
+        .setDirectory(originGitRepoDir)
         .setInitialBranch("master")
         .call();
 
     Git.cloneRepository()
-        .setURI(originGitRepoDir.getRoot().getAbsolutePath())
-        .setDirectory(noneJenkinsGitRepoDir.getRoot())
+        .setURI(originGitRepoDir.getAbsolutePath())
+        .setDirectory(noneJenkinsGitRepoDir)
         .call();
-    Files.createFile(noneJenkinsGitRepoDir.getRoot().toPath().resolve("first.txt"));
-    noneJenkinsGitRepo = Git.open(noneJenkinsGitRepoDir.getRoot());
+    Files.createFile(noneJenkinsGitRepoDir.toPath().resolve("first.txt"));
+    noneJenkinsGitRepo = Git.open(noneJenkinsGitRepoDir);
     noneJenkinsGitRepo.add().addFilepattern("first.txt").call();
     noneJenkinsGitRepo.commit().setMessage("First commit").setCommitter(IDENTITY).call();
     noneJenkinsGitRepo.push().call();
@@ -74,7 +79,7 @@ public class GitPushTest {
         new GitSCM(
             Collections.singletonList(
                 new UserRemoteConfig(
-                    originGitRepoDir.getRoot().getAbsolutePath(), "origin", "", null)),
+                    originGitRepoDir.getAbsolutePath(), "origin", "", null)),
             Collections.singletonList(new BranchSpec("master")),
             null,
             null,
@@ -87,13 +92,13 @@ public class GitPushTest {
     project.save();
   }
 
-  @After
-  public void afterEach() {
+  @AfterEach
+  void afterEach() {
     noneJenkinsGitRepo.close();
   }
 
   @Test
-  public void without_it_no_commit_is_pushed() throws Exception {
+  void without_it_no_commit_is_pushed() throws Exception {
     project.getBuildersList().add(new CommitBuilder());
     project.save();
 
@@ -103,7 +108,7 @@ public class GitPushTest {
     CommitAction commitAction = build.getAction(CommitAction.class);
     assertThat(commitAction).isNotNull();
 
-    try (Git origin = Git.open(originGitRepoDir.getRoot())) {
+    try (Git origin = Git.open(originGitRepoDir)) {
       assertThatThrownBy(
               () ->
                   origin
@@ -114,7 +119,7 @@ public class GitPushTest {
   }
 
   @Test
-  public void it_pushes_commits() throws Exception {
+  void it_pushes_commits() throws Exception {
     project.getBuildersList().add(new CommitBuilder());
     project.getPublishersList().add(createGitPush("master", "origin"));
     project.save();
@@ -125,7 +130,7 @@ public class GitPushTest {
     CommitAction commitAction = build.getAction(CommitAction.class);
     assertThat(commitAction).isNotNull();
 
-    try (Git origin = Git.open(originGitRepoDir.getRoot())) {
+    try (Git origin = Git.open(originGitRepoDir)) {
       RevCommit commit =
           origin.getRepository().parseCommit(ObjectId.fromString(commitAction.commit.name()));
       assertThat(commit.getParentCount()).isEqualTo(1);
@@ -133,7 +138,7 @@ public class GitPushTest {
   }
 
   @Test
-  public void it_pushes_tags() throws Exception {
+  void it_pushes_tags() throws Exception {
     project.getBuildersList().add(new CommitBuilder());
     project.getBuildersList().add(new TagBuilder());
     project.getPublishersList().add(createGitPush("master", "origin"));
@@ -147,7 +152,7 @@ public class GitPushTest {
     TagAction tagAction = build.getAction(TagAction.class);
     assertThat(tagAction).isNotNull();
 
-    try (Git origin = Git.open(originGitRepoDir.getRoot())) {
+    try (Git origin = Git.open(originGitRepoDir)) {
       ObjectId commitId = ObjectId.fromString(commitAction.commit.name());
       List<Ref> tags = origin.getRepository().getRefDatabase().getRefsByPrefix(R_TAGS);
       assertThat(tags)
@@ -165,12 +170,12 @@ public class GitPushTest {
   }
 
   @Test
-  public void it_create_merge_commit_if_needed() throws Exception {
+  void it_create_merge_commit_if_needed() throws Exception {
     project
         .getBuildersList()
         .add(
             new CommitBuilder()
-                .gitDir(noneJenkinsGitRepoDir.getRoot().getAbsolutePath())
+                .gitDir(noneJenkinsGitRepoDir.getAbsolutePath())
                 .push(true)
                 .publishCommitAction(false));
     project.getBuildersList().add(new CommitBuilder());
@@ -183,7 +188,7 @@ public class GitPushTest {
     CommitAction commitAction = build.getAction(CommitAction.class);
     assertThat(commitAction).isNotNull();
 
-    try (Git origin = Git.open(originGitRepoDir.getRoot())) {
+    try (Git origin = Git.open(originGitRepoDir)) {
       ObjectId commitId = ObjectId.fromString(commitAction.commit.name());
       assertThatCode(() -> origin.getRepository().parseCommit(commitId)).doesNotThrowAnyException();
 
