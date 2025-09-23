@@ -5,7 +5,7 @@
   <parent>
     <groupId>org.jenkins-ci.plugins</groupId>
     <artifactId>plugin</artifactId>
-    <version>4.33</version>
+    <version>5.11</version>
     <relativePath/>
   </parent>
   <groupId>io.jenkins.plugins</groupId>
@@ -15,9 +15,8 @@
   <properties>
     <changelist>999999-SNAPSHOT</changelist>
     <!-- https://www.jenkins.io/doc/developer/plugin-development/choosing-jenkins-baseline/ -->
-    <jenkins.baseline>2.263</jenkins.baseline>
-    <jenkins.version>${jenkins.baseline}.1</jenkins.version>
-    <java.level>8</java.level>
+    <jenkins.baseline>2.479</jenkins.baseline>
+    <jenkins.version>${jenkins.baseline}.3</jenkins.version>
     <gitHubRepo>jenkinsci/${project.artifactId}-plugin</gitHubRepo>
     <git-code-format-maven-plugin.version>4.3</git-code-format-maven-plugin.version>
   </properties>
@@ -29,7 +28,7 @@
       <dependency>
         <groupId>io.jenkins.tools.bom</groupId>
         <artifactId>bom-${jenkins.baseline}.x</artifactId>
-        <version>961.vf0c9f6f59827</version>
+        <version>4607.v67a_4791074d7</version>
         <scope>import</scope>
         <type>pom</type>
       </dependency>
@@ -40,7 +39,6 @@
     <dependency>
       <groupId>org.jenkins-ci.plugins</groupId>
       <artifactId>git</artifactId>
-      <version>4.8.1</version>
     </dependency>
     <dependency>
       <groupId>org.jenkins-ci.plugins</groupId>
@@ -73,7 +71,7 @@
   </licenses>
 
   <scm>
-    <connection>scm:git:git://github.com/${gitHubRepo}.git</connection>
+    <connection>scm:git:https://github.com/${gitHubRepo}.git</connection>
     <developerConnection>scm:git:git@github.com:${gitHubRepo}.git</developerConnection>
     <url>https://github.com/${gitHubRepo}</url>
     <tag>${scmTag}</tag>
@@ -118,12 +116,4 @@
       </plugin>
     </plugins>
   </build>
-
-  <developers>
-    <developer>
-      <id>reda-alaoui</id>
-      <name>Réda Housni Alaoui</name>
-      <email>reda-alaoui@hey.com</email>
-    </developer>
-  </developers>
 </project>
